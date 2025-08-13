@@ -163,13 +163,95 @@ def apply_tokyo_assembly_style():
             font-weight: bold;
             margin-left: 0.5rem;
         }
+        
+        /* 検索ハイライト */
+        .highlight {
+            background-color: #fff59d;
+            padding: 0.1em 0.2em;
+            border-radius: 0.2em;
+            font-weight: bold;
+        }
+                        /* サイドバー開閉ボタン - 追加部分 */
+        [data-testid="collapsedControl"] {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+            border-radius: 0 4px 4px 0 !important;
+            padding: 0.5rem 1rem !important;
+            left: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            font-weight: bold !important;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2) !important;
+        }
+        
+        [data-testid="collapsedControl"]:hover {
+            background-color: #002f6c !important;
+            transform: translateX(2px) !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        [data-testid="collapsedControl"] svg {
+            width: 1.2rem !important;
+            height: 1.2rem !important;
+            min-width: 1.2rem !important;
+        }
+        
+        /* スマホ用サイドバー自動閉じ */
+        @media (max-width: 768px) {
+            .sidebar-collapse {
+                display: none;
+            }
+        }
         </style>
+        
+        <script>
+        // スマホで検索条件が確定したらサイドバーを閉じる
+        function closeSidebarOnMobile() {
+            if (window.innerWidth <= 768) {
+                const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
+                if (sidebar) {
+                    sidebar.style.display = 'none';
+                }
+            }
+        }
+        
+        // 検索クエリのハイライト処理
+        function highlightText(text, query) {
+            if (!query) return text;
+            const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            return text.replace(regex, match => `<span class="highlight">${match}</span>`);
+        }
+        
+        // ページ読み込み時に実行
+        document.addEventListener('DOMContentLoaded', function() {
+            // スマホ表示時にサイドバーを閉じるトリガーを設定
+            const inputs = document.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('change', closeSidebarOnMobile);
+            });
+        });
+        </script>
+                
     """, unsafe_allow_html=True)
 
 @st.cache_data
 def load_data(filepath):
     with open(filepath, "r", encoding="utf-8") as file:
         return json.load(file)
+
+def highlight_search_term(text, query):
+    """検索クエリをハイライト表示する"""
+    if not query:
+        return text
+    import re
+    highlighted = re.sub(
+        f"({re.escape(query)})", 
+        r'<span class="highlight">\1</span>', 
+        text, 
+        flags=re.IGNORECASE
+    )
+    return highlighted
 
 def search_items(data, search_query):
     results = []
@@ -178,12 +260,19 @@ def search_items(data, search_query):
             for cluster in category["clusters"]:
                 for item in cluster["items"]:
                     if search_query.lower() in item["body"].lower():
+                        # ハイライト処理を追加
+                        highlighted_body = highlight_search_term(item["body"], search_query)
+                        highlighted_head = highlight_search_term(item["head"], search_query)
+                        
                         results.append({
                             "meeting_id": meeting["meeting_id"],
                             "date": meeting.get("date", "記載なし"),
                             "category": category["category"],
                             "cluster_keywords": cluster["cluster_keywords"],
-                            "item": item
+                            "item": {
+                                "head": highlighted_head,
+                                "body": highlighted_body
+                            }
                         })
     return results
 
@@ -223,23 +312,23 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     
     # フリーワード検索
-    search_query = st.text_input("フリーワード検索", placeholder="検索したいフレーズを入力")
+    search_query = st.text_input("フリーワード検索", placeholder="検索したいフレーズを入力", key="search_input")
     
     # 通常のフィルタリング
     meeting_ids = [meeting["meeting_id"] for meeting in data]
-    selected_meeting = st.selectbox("会議番号を選択", meeting_ids)
+    selected_meeting = st.selectbox("会議番号を選択", meeting_ids, key="meeting_select")
     
     meeting_data = next((m for m in data if m["meeting_id"] == selected_meeting), None)
     
     if meeting_data:
         categories = [c["category"] for c in meeting_data["categories"]]
-        selected_category = st.selectbox("カテゴリを選択", categories)
+        selected_category = st.selectbox("カテゴリを選択", categories, key="category_select")
         
         category_data = next((c for c in meeting_data["categories"] if c["category"] == selected_category), None)
         
         if category_data:
             cluster_keywords = [cl["cluster_keywords"] for cl in category_data["clusters"]]
-            selected_cluster_keywords = st.selectbox("キーワードを選択", cluster_keywords)
+            selected_cluster_keywords = st.selectbox("キーワードを選択", cluster_keywords, key="keyword_select")
 
 # メインコンテンツ
 if search_query:
@@ -335,4 +424,62 @@ st.markdown("""
     <div class="footer">
         <p>© 2025 東京都議会議事録ビューア | このシステムは東京都議会の議事録を閲覧するためのものです</p>
     </div>
+""", unsafe_allow_html=True)
+
+# スマホ表示時にサイドバーを自動で閉じるJavaScriptを追加
+st.markdown("""
+    <script>
+    // スマホ表示かどうかを判定
+    function isMobile() {
+        return window.innerWidth <= 768;
+    }
+    
+       
+    // スマホ表示時のサイドバー制御
+    function setupMobileSidebar() {
+        // サイドバー開閉ボタンのカスタマイズ
+        const collapseBtn = window.parent.document.querySelector('[data-testid="collapsedControl"]');
+        if (collapseBtn) {
+            // アイコンを検索アイコンに変更
+            collapseBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="white">
+                    <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                </svg>
+                <span>検索</span>
+            `;
+            
+            // クリック時にスクロール位置を調整
+            collapseBtn.addEventListener('click', function() {
+                setTimeout(() => {
+                    window.scrollTo(0, 0);
+                }, 300);
+            });
+        }
+        
+        // スマホ判定
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+        
+        // サイドバー自動閉じ
+        function closeSidebar() {
+            if (isMobile()) {
+                const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
+                if (sidebar) sidebar.style.display = 'none';
+            }
+        }
+        
+        // 入力要素にイベントリスナー追加
+        document.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('change', closeSidebar);
+        });
+    }
+    
+    // 初期設定
+    document.addEventListener('DOMContentLoaded', setupMobileSidebar);
+    
+    // Streamlitの更新を監視
+    new MutationObserver(setupMobileSidebar)
+        .observe(document.body, { childList: true, subtree: true });
+    </script>
 """, unsafe_allow_html=True)
