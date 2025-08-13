@@ -178,35 +178,33 @@ def apply_tokyo_assembly_style():
                 display: none;
             }
         }
+        
+        /* 検索モード切り替えタブ */
+        .stTabs [role="tablist"] {
+            margin-bottom: 1rem;
+        }
+        
+        .stTabs [role="tab"] {
+            color: #666;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 4px 4px 0 0;
+            border: 1px solid #d0d0d0;
+            background-color: #f0f0f0;
+        }
+        
+        .stTabs [role="tab"][aria-selected="true"] {
+            color: var(--primary-color);
+            background-color: white;
+            border-bottom: 3px solid var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .stTabs [role="tab"]:hover {
+            color: var(--primary-color);
+            background-color: #e6f0fa;
+        }
         </style>
-        
-        <script>
-        // スマホで検索条件が確定したらサイドバーを閉じる
-        function closeSidebarOnMobile() {
-            if (window.innerWidth <= 768) {
-                const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
-                if (sidebar) {
-                    sidebar.style.display = 'none';
-                }
-            }
-        }
-        
-        // 検索クエリのハイライト処理
-        function highlightText(text, query) {
-            if (!query) return text;
-            const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-            return text.replace(regex, match => `<span class="highlight">${match}</span>`);
-        }
-        
-        // ページ読み込み時に実行
-        document.addEventListener('DOMContentLoaded', function() {
-            // スマホ表示時にサイドバーを閉じるトリガーを設定
-            const inputs = document.querySelectorAll('input, select');
-            inputs.forEach(input => {
-                input.addEventListener('change', closeSidebarOnMobile);
-            });
-        });
-        </script>
     """, unsafe_allow_html=True)
 
 @st.cache_data
@@ -285,37 +283,68 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
     
-    # フリーワード検索
-    search_query = st.text_input("フリーワード検索", placeholder="検索したいフレーズを入力", key="search_input")
+    # 検索モード切り替えタブ
+    search_mode = st.radio(
+        "検索モード",
+        ["フリーワード検索", "キーワード検索"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
     
-    # 通常のフィルタリング
-    meeting_ids = [meeting["meeting_id"] for meeting in data]
-    selected_meeting = st.selectbox("会議番号を選択", meeting_ids, key="meeting_select")
+    if search_mode == "フリーワード検索":
+        # フリーワード検索
+        freeword_search = st.text_input(
+            "フリーワード検索", 
+            placeholder="検索したいフレーズを入力", 
+            key="freeword_search"
+        )
     
-    meeting_data = next((m for m in data if m["meeting_id"] == selected_meeting), None)
-    
-    if meeting_data:
-        categories = [c["category"] for c in meeting_data["categories"]]
-        selected_category = st.selectbox("カテゴリを選択", categories, key="category_select")
+    else:  # キーワード検索
+        # 会議選択
+        meeting_options = [meeting["meeting_id"] for meeting in data]
+        if "meeting_select" not in st.session_state:
+            st.session_state.meeting_select = meeting_options[0]
         
-        category_data = next((c for c in meeting_data["categories"] if c["category"] == selected_category), None)
+        selected_meeting = st.selectbox(
+            "会議番号を選択", 
+            meeting_options, 
+            key="meeting_select"
+        )
         
-        if category_data:
-            cluster_keywords = [cl["cluster_keywords"] for cl in category_data["clusters"]]
-            selected_cluster_keywords = st.selectbox("キーワードを選択", cluster_keywords, key="keyword_select")
+        meeting_data = next((m for m in data if m["meeting_id"] == selected_meeting), None)
+        
+        if meeting_data:
+            # カテゴリ選択
+            categories = [c["category"] for c in meeting_data["categories"]]
+            selected_category = st.selectbox(
+                "カテゴリを選択", 
+                categories, 
+                key="category_select"
+            )
+            
+            category_data = next((c for c in meeting_data["categories"] if c["category"] == selected_category), None)
+            
+            if category_data:
+                # キーワード選択
+                cluster_keywords = [cl["cluster_keywords"] for cl in category_data["clusters"]]
+                selected_cluster_keywords = st.selectbox(
+                    "キーワードを選択", 
+                    cluster_keywords, 
+                    key="keyword_select"
+                )
 
 # メインコンテンツ
-if search_query:
+if search_mode == "フリーワード検索" and st.session_state.get("freeword_search"):
     # フリーワード検索結果を表示
-    search_results = search_items(data, search_query)
+    search_results = search_items(data, st.session_state.freeword_search)
     st.markdown(f"""
         <div style="background-color: var(--secondary-color); padding: 1rem; border-radius: 4px; margin-bottom: 2rem;">
-            <h3 style="margin-top: 0;">検索結果</h3>
+            <h3 style="margin-top: 0;">フリーワード検索結果</h3>
             <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem;">
                 <div style="font-weight: bold;">検索クエリ:</div>
-                <div>"{search_query}"</div>
+                <div>"{st.session_state.freeword_search}"</div>
                 <div style="font-weight: bold;">ヒット件数:</div>
-                <div>{len(search_results)}件 <span class="result-badge">絞り込み結果</span></div>
+                <div>{len(search_results)}件 <span class="result-badge">検索結果</span></div>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -343,55 +372,69 @@ if search_query:
     else:
         st.warning("該当する議事内容が見つかりませんでした。")
         
-elif meeting_data:
-    # 会議基本情報
-    st.markdown(f"""
-        <div style="background-color: var(--secondary-color); padding: 1rem; border-radius: 4px; margin-bottom: 2rem;">
-            <h3 style="margin-top: 0;">会議基本情報</h3>
-            <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem;">
-                <div style="font-weight: bold;">会議番号:</div>
-                <div>{meeting_data['meeting_id']}</div>
-                <div style="font-weight: bold;">開催日:</div>
-                <div>{meeting_data.get('date', '記載なし')}</div>
-                <div style="font-weight: bold;">カテゴリ数:</div>
-                <div>{len(meeting_data['categories'])}件</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+elif search_mode == "キーワード検索" and st.session_state.get("meeting_select"):
+    # キーワード検索結果を表示
+    meeting_data = next((m for m in data if m["meeting_id"] == st.session_state.meeting_select), None)
     
-    if category_data and selected_cluster_keywords:
-        selected_cluster = next(
-            (cl for cl in category_data["clusters"] if cl["cluster_keywords"] == selected_cluster_keywords),
-            None
-        )
+    if meeting_data:
+        # 会議基本情報
+        st.markdown(f"""
+            <div style="background-color: var(--secondary-color); padding: 1rem; border-radius: 4px; margin-bottom: 2rem;">
+                <h3 style="margin-top: 0;">会議基本情報</h3>
+                <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem;">
+                    <div style="font-weight: bold;">会議番号:</div>
+                    <div>{meeting_data['meeting_id']}</div>
+                    <div style="font-weight: bold;">開催日:</div>
+                    <div>{meeting_data.get('date', '記載なし')}</div>
+                    <div style="font-weight: bold;">カテゴリ数:</div>
+                    <div>{len(meeting_data['categories'])}件</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
         
-        if selected_cluster:
-            st.markdown(f"""
-                <div style="margin-bottom: 1.5rem;">
-                    <span class="tokyo-badge">カテゴリ</span>
-                    <span style="font-size: 1.2rem; font-weight: bold;">{category_data['category']}</span>
-                </div>
-                <div style="margin-bottom: 2rem;">
-                    <span class="tokyo-badge">キーワード</span>
-                    <span style="font-size: 1.2rem; font-weight: bold;">{selected_cluster_keywords}</span>
-                    <span class="result-badge">絞り込み結果: {len(selected_cluster['items'])}件</span>
-                </div>
-            """, unsafe_allow_html=True)
+        if st.session_state.get("category_select") and st.session_state.get("keyword_select"):
+            category_data = next(
+                (c for c in meeting_data["categories"] if c["category"] == st.session_state.category_select),
+                None
+            )
             
-            st.markdown("### 議事内容")
-            for item in selected_cluster["items"]:
-                st.markdown(f"""
-                    <div class="meeting-item">
-                        <div class="meeting-item-head">📌 {item['head']}</div>
-                        <div class="meeting-item-body">{item['body']}</div>
-                    </div>
-                """, unsafe_allow_html=True)
+            if category_data:
+                selected_cluster = next(
+                    (cl for cl in category_data["clusters"] if cl["cluster_keywords"] == st.session_state.keyword_select),
+                    None
+                )
+                
+                if selected_cluster:
+                    st.markdown(f"""
+                        <div style="margin-bottom: 1.5rem;">
+                            <span class="tokyo-badge">カテゴリ</span>
+                            <span style="font-size: 1.2rem; font-weight: bold;">{category_data['category']}</span>
+                        </div>
+                        <div style="margin-bottom: 2rem;">
+                            <span class="tokyo-badge">キーワード</span>
+                            <span style="font-size: 1.2rem; font-weight: bold;">{st.session_state.keyword_select}</span>
+                            <span class="result-badge">検索結果: {len(selected_cluster['items'])}件</span>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.markdown("### 議事内容")
+                    for item in selected_cluster["items"]:
+                        st.markdown(f"""
+                            <div class="meeting-item">
+                                <div class="meeting-item-head">📌 {item['head']}</div>
+                                <div class="meeting-item-body">{item['body']}</div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.error("選択されたクラスタが見つかりません。")
+            else:
+                st.error("選択されたカテゴリが見つかりません。")
         else:
-            st.error("選択されたクラスタが見つかりません。")
+            st.info("左のサイドバーからカテゴリとキーワードを選択してください。")
     else:
-        st.info("左のサイドバーからカテゴリとキーワードを選択してください。")
+        st.error("選択された会議が見つかりません。")
 else:
-    st.error("データが見つかりませんでした。")
+    st.info("左のサイドバーから検索条件を選択してください。")
 
 # フッター
 st.markdown("""
