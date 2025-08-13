@@ -171,31 +171,6 @@ def apply_tokyo_assembly_style():
             border-radius: 0.2em;
             font-weight: bold;
         }
-                        /* サイドバー開閉ボタン - 追加部分 */
-        [data-testid="collapsedControl"] {
-            background-color: var(--primary-color) !important;
-            color: white !important;
-            border-radius: 0 4px 4px 0 !important;
-            padding: 0.5rem 1rem !important;
-            left: 0 !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 0.5rem !important;
-            font-weight: bold !important;
-            box-shadow: 1px 1px 3px rgba(0,0,0,0.2) !important;
-        }
-        
-        [data-testid="collapsedControl"]:hover {
-            background-color: #002f6c !important;
-            transform: translateX(2px) !important;
-            transition: all 0.2s ease !important;
-        }
-        
-        [data-testid="collapsedControl"] svg {
-            width: 1.2rem !important;
-            height: 1.2rem !important;
-            min-width: 1.2rem !important;
-        }
         
         /* スマホ用サイドバー自動閉じ */
         @media (max-width: 768px) {
@@ -232,7 +207,6 @@ def apply_tokyo_assembly_style():
             });
         });
         </script>
-                
     """, unsafe_allow_html=True)
 
 @st.cache_data
@@ -434,52 +408,31 @@ st.markdown("""
         return window.innerWidth <= 768;
     }
     
-       
-    // スマホ表示時のサイドバー制御
-    function setupMobileSidebar() {
-        // サイドバー開閉ボタンのカスタマイズ
-        const collapseBtn = window.parent.document.querySelector('[data-testid="collapsedControl"]');
-        if (collapseBtn) {
-            // アイコンを検索アイコンに変更
-            collapseBtn.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="white">
-                    <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                </svg>
-                <span>検索</span>
-            `;
-            
-            // クリック時にスクロール位置を調整
-            collapseBtn.addEventListener('click', function() {
-                setTimeout(() => {
-                    window.scrollTo(0, 0);
-                }, 300);
+    // 検索条件が変更されたらサイドバーを閉じる
+    function setupSidebarAutoClose() {
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('change', function() {
+                if (isMobile()) {
+                    const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
+                    if (sidebar) {
+                        sidebar.style.display = 'none';
+                    }
+                }
             });
-        }
-        
-        // スマホ判定
-        function isMobile() {
-            return window.innerWidth <= 768;
-        }
-        
-        // サイドバー自動閉じ
-        function closeSidebar() {
-            if (isMobile()) {
-                const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
-                if (sidebar) sidebar.style.display = 'none';
-            }
-        }
-        
-        // 入力要素にイベントリスナー追加
-        document.querySelectorAll('input, select').forEach(input => {
-            input.addEventListener('change', closeSidebar);
         });
     }
     
-    // 初期設定
-    document.addEventListener('DOMContentLoaded', setupMobileSidebar);
+    // ページ読み込み時に実行
+    document.addEventListener('DOMContentLoaded', function() {
+        setupSidebarAutoClose();
+    });
     
-    // Streamlitの更新を監視
-    new MutationObserver(setupMobileSidebar)
-        .observe(document.body, { childList: true, subtree: true });
+    // Streamlitのコンポーネントが更新された時にも実行
+    const observer = new MutationObserver(function(mutations) {
+        setupSidebarAutoClose();
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
     </script>
 """, unsafe_allow_html=True)
