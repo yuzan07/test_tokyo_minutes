@@ -770,8 +770,6 @@ elif not st.session_state.show_search_panel:
                         <div style="margin-bottom: 0.8rem; text-align: center; font-size: 1rem;">
                             <span class="tokyo-badge">カテゴリ</span>
                             <span style="font-weight: 600;">{result['category']}</span>
-                        </div>
-                        <div style="margin-bottom: 0.8rem; text-align: center; font-size: 1rem;">
                             <span class="tokyo-badge">キーワード</span>
                             <span style="font-weight: 600;">{result['cluster_keywords']}</span>
                         </div>
@@ -797,7 +795,29 @@ elif not st.session_state.show_search_panel:
             
             if selected_cluster:
                 result_count = len(selected_cluster["items"])
-                st.markdown(f"""<div style="background-color: var(--secondary-color); padding: 1.8rem; border-radius: 12px; margin-bottom: 2rem; max-width: 650px; margin-left: auto; margin-right: auto;"><h3 style="margin-top: 0; color: var(--primary-color); font-size: 1.9rem; text-align: center;">キーワード検索結果</h3><div style="display: flex; flex-direction: column; gap: 1.2rem; font-size: 1.3rem;"><div style="display: flex; align-items: center; gap: 1.5rem;"><span class="tokyo-badge" style="font-size: 1.1rem;">会議番号</span><span style="font-size: 1.3rem; font-weight: 700; color: var(--primary-color);">{meeting_data['meeting_id']}</span><span class="tokyo-badge" style="font-size: 1.1rem;">カテゴリ</span><span style="font-size: 1.2rem; font-weight: 700; color: var(--primary-color);">{search_query['category']}</span></div><div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;"><span class="tokyo-badge" style="font-size: 1.1rem;">キーワード</span><span style="font-size: 1.2rem; font-weight: 700; color: var(--primary-color);">{search_query['keyword']}</span><span class="result-badge" style="font-size: 1.2rem; padding: 0.25rem 0.6rem; margin-left: 0.5rem;">検索結果: {result_count}件</span></div></div></div>""", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="background-color: var(--secondary-color); padding: 1.8rem; border-radius: 12px; margin-bottom: 2rem; max-width: 650px; margin-left: auto; margin-right: auto;">
+                <h3 style="margin-top: 0; color: var(--primary-color); font-size: 1.9rem; text-align: center;">キーワード検索結果</h3>
+                <div style="display: flex; flex-direction: column; gap: 1.2rem; font-size: 1.3rem;">
+                    <!-- 会議番号 -->
+                    <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <span class="tokyo-badge" style="font-size: 1.1rem;">会議番号</span>
+                    <span style="font-size: 1.3rem; font-weight: 700; color: var(--primary-color);">{meeting_data['meeting_id']}</span>
+                    </div>
+                    <!-- カテゴリ（左寄せ） -->
+                    <div style="display: flex; align-items: center; gap: 1.5rem; justify-content: flex-start;">
+                    <span class="tokyo-badge" style="font-size: 1.1rem;">カテゴリ</span>
+                    <span style="font-size: 1.2rem; font-weight: 700; color: var(--primary-color);">{search_query['category']}</span>
+                    </div>
+                    <!-- キーワード -->
+                    <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+                    <span class="tokyo-badge" style="font-size: 1.1rem;">キーワード</span>
+                    <span style="font-size: 1.2rem; font-weight: 700; color: var(--primary-color);">{search_query['keyword']}</span>
+                    <span class="result-badge" style="font-size: 1.2rem; padding: 0.25rem 0.6rem; margin-left: 0.5rem;">検索結果: {result_count}件</span>
+                    </div>
+                </div>
+                </div>
+                """, unsafe_allow_html=True)
 
                 
                 st.markdown("### 議事内容")
