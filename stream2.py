@@ -770,6 +770,8 @@ elif not st.session_state.show_search_panel:
                         <div style="margin-bottom: 0.8rem; text-align: center; font-size: 1rem;">
                             <span class="tokyo-badge">カテゴリ</span>
                             <span style="font-weight: 600;">{result['category']}</span>
+                        </div>
+                        <div style="margin-bottom: 0.8rem; text-align: center; font-size: 1rem;">
                             <span class="tokyo-badge">キーワード</span>
                             <span style="font-weight: 600;">{result['cluster_keywords']}</span>
                         </div>
