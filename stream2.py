@@ -484,7 +484,7 @@ def search_items(data, search_query):
 
 # アプリケーションの設定
 st.set_page_config(
-    page_title="東京都議会議事録ビューア",
+    page_title="行政文書ビューア (仮)",
     page_icon="🏛️",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -544,8 +544,8 @@ if st.session_state.show_search_panel:
         <div class="center-content" style="margin-bottom: 1rem;">
             <img src="https://www.pngitem.com/pimgs/m/224-2247048_-hd-png-download.png" alt="東京都ロゴ" style="height: 80px; margin-right: 15px;">
             <div>
-                <h1 style="margin: 0; padding: 0;">東京都議会議事録ビューア</h1>
-                <p style="margin: 0; color: #666; font-size: 1.2rem;">過去10年間の議事録を検索・閲覧できます</p>
+                <h1 style="margin: 0; padding: 0;">行政文書ビューア (仮)</h1>
+                <p style="margin: 0; color: #666; font-size: 1.2rem;">あなたの身近の行政文書を検索・閲覧できます</p>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -836,6 +836,6 @@ elif not st.session_state.show_search_panel:
 # フッター
 st.markdown("""
     <div class="footer">
-        <p>© 2025 東京都議会議事録ビューア | このシステムは東京都議会の議事録を閲覧するためのものです</p>
+        <p>© 2025 行政文書ビューア(仮) | このシステムは行政文書の議事録を閲覧するためのものです</p>
     </div>
 """, unsafe_allow_html=True)
